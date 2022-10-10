@@ -3,14 +3,12 @@
 pragma solidity ^0.8.0;
 
 // Sistema de votaciones para destinar fondos ayuda humanitaria
-    // registrar iniciativas a votar (nombre, país, ODS, causa)
-    //La ONU es dueño del contrato y tiene que ser el único que pueda dar derecho al voto a los votantes
+    //Registrar iniciativas a votar (nombre, causa, address)
+    //La Oficina de la ONU para la Coordinación de Asuntos Humanitarios es dueño del contrato y tiene que ser el único que pueda dar derecho al voto a los votantes
     //Permitir que los votantes autorizados voten por una sola iniciativa
     //La votación debe terminar después de un tiempo determinado, cuando se alcance el número máximo de votos u otra condición
     //Una vez finalizada la votación se debe poder ver al ganador y mostrar la dirección del contrato inteligente
-    //Crear ER20 token que distribuya la ayuda humanitaria
-    //El total supply = la ayuda total
-    //cuando cierre la votación se distribuya de acuerdo al % de votaciones
+    //Cuando cierre la votación se distribuya el monto de donaciones de acuerdo al resultado de votaciones
 
     //Oficina de la ONU para la Coordinación de Asuntos Humanitarios - Owner - 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4
 
@@ -22,6 +20,8 @@ pragma solidity ^0.8.0;
 
     Contract input: [FM4, AP, FMCN, FMED]
     */
+
+
     
 contract Aidvote {
 
@@ -34,17 +34,26 @@ contract Aidvote {
     struct Propuesta {
         string nombre;   
         uint Numvotos; 
+        address payable cuenta;
     }
 
-
+    uint256 public voteStart;
+    uint256 public votingTime;
 
     address public delegado;
+
 
     mapping(address => Votante) public votantes;
 
     Propuesta[] public propuestas;
 
-    constructor(string[] memory propuestaNombres) {
+    uint256 _totalDonaciones = 1000 ether;
+    mapping(address => uint256) donaciones;
+
+    bool ended;
+
+
+    constructor(string[] memory propuestaNombres, address payable[] memory propuestaCuentas) {
         delegado = msg.sender;
         votantes[delegado].peso = 1;
 
@@ -53,9 +62,11 @@ contract Aidvote {
 
             propuestas.push(Propuesta({
                 nombre: propuestaNombres[i],
+                cuenta: propuestaCuentas[i],
                 Numvotos: 0
             }));
         }
+         donaciones [address(this)] = _totalDonaciones;
     }
 
     function DarDerechoAVoto(address votante) external {
@@ -74,9 +85,15 @@ contract Aidvote {
 
   
     function voto(uint propuesta) external {
+
+        uint _votingTime; {
+        voteStart = block.timestamp;
+        votingTime = _votingTime;
+    }
         Votante storage sender = votantes[msg.sender];
         require(sender.peso != 0, "No tiene derecho a votar");
         require(!sender.votoemitido, "Voto Emitido.");
+        require(block.timestamp <= (voteStart + votingTime));
         sender.votoemitido = true;
         sender.voto = propuesta;
 
@@ -96,21 +113,23 @@ contract Aidvote {
     }
 
     function nombreGanadora() external view
-            returns (string memory nombreGanadora_)
+            returns (string memory nombreGanadora_, address cuentaGanadora_)
     {
         nombreGanadora_ = propuestas[propuestaGanadora()].nombre;
+        cuentaGanadora_ = propuestas[propuestaGanadora()].cuenta;
+
     }
 
+    function votingEnd() external {
+        
+        require(block.timestamp >= (voteStart + votingTime)); 
+        require(!ended);
 
-    int public saldo = 0;
+        ended = true;
+
+
+    }
    
-
-    function setDonaciones (int donaciones) public{
-        saldo = saldo + donaciones;
-
-    }
-
-    
 
 
     }
