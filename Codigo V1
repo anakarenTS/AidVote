@@ -1,0 +1,117 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.0;
+
+// Sistema de votaciones para destinar fondos ayuda humanitaria
+    // registrar iniciativas a votar (nombre, país, ODS, causa)
+    //La ONU es dueño del contrato y tiene que ser el único que pueda dar derecho al voto a los votantes
+    //Permitir que los votantes autorizados voten por una sola iniciativa
+    //La votación debe terminar después de un tiempo determinado, cuando se alcance el número máximo de votos u otra condición
+    //Una vez finalizada la votación se debe poder ver al ganador y mostrar la dirección del contrato inteligente
+    //Crear ER20 token que distribuya la ayuda humanitaria
+    //El total supply = la ayuda total
+    //cuando cierre la votación se distribuya de acuerdo al % de votaciones
+
+    //Oficina de la ONU para la Coordinación de Asuntos Humanitarios - Owner - 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4
+
+    /* ONGs propuestas para la votación: FM4, AP, FMCN, FMED
+    FM4 Paso Libre - Personas refugiadas y migración - 0xdD870fA1b7C4700F2BD7f44238821C26f7392148
+    Alternativas pacíficas AP - Violecia a la mujer - 0x583031D1113aD414F02576BD6afaBfb302140225
+    Fondo Mexicano para la Conservación de la Naturaleza FMCN - proyectos estratégicos para conservar el patrimonio natural de México - 0x4B0897b0513fdC7C541B6d9D7E929C4e5364D2dB
+    Fondo Mexicano para la Educación y el Desarrollo FMED - Educación - 0x14723A09ACff6D2A60DcdF7aA4AFf308FDDC160C
+
+    Contract input: [FM4, AP, FMCN, FMED]
+    */
+    
+contract Aidvote {
+
+    struct Votante {
+        uint peso; 
+        bool votoemitido;  
+        uint voto;  
+    }
+
+    struct Propuesta {
+        string nombre;   
+        uint Numvotos; 
+    }
+
+
+
+    address public delegado;
+
+    mapping(address => Votante) public votantes;
+
+    Propuesta[] public propuestas;
+
+    constructor(string[] memory propuestaNombres) {
+        delegado = msg.sender;
+        votantes[delegado].peso = 1;
+
+  
+        for (uint i = 0; i < propuestaNombres.length; i++) {
+
+            propuestas.push(Propuesta({
+                nombre: propuestaNombres[i],
+                Numvotos: 0
+            }));
+        }
+    }
+
+    function DarDerechoAVoto(address votante) external {
+
+        require(
+            msg.sender == delegado,
+            "Solo el delegado pueda dar el derecho al voto"
+        );
+        require(
+            !votantes[votante].votoemitido,
+            "El votante ya emitio su voto."
+        );
+        require(votantes[votante].peso == 0);
+        votantes[votante].peso = 1;
+    }
+
+  
+    function voto(uint propuesta) external {
+        Votante storage sender = votantes[msg.sender];
+        require(sender.peso != 0, "No tiene derecho a votar");
+        require(!sender.votoemitido, "Voto Emitido.");
+        sender.votoemitido = true;
+        sender.voto = propuesta;
+
+        propuestas[propuesta].Numvotos += sender.peso;
+    }
+
+    function propuestaGanadora() public view
+            returns (uint propuestaGanadora_)
+    {
+        uint ganadoraNumVotos = 0;
+        for (uint p = 0; p < propuestas.length; p++) {
+            if (propuestas[p].Numvotos > ganadoraNumVotos) {
+                ganadoraNumVotos = propuestas[p].Numvotos;
+                propuestaGanadora_ = p;
+            }
+        }
+    }
+
+    function nombreGanadora() external view
+            returns (string memory nombreGanadora_)
+    {
+        nombreGanadora_ = propuestas[propuestaGanadora()].nombre;
+    }
+
+
+    int public saldo = 0;
+   
+
+    function setDonaciones (int donaciones) public{
+        saldo = saldo + donaciones;
+
+    }
+
+    
+
+
+    }
+
