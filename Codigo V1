@@ -127,10 +127,13 @@ contract Aidvote {
 
         ended = true;
 
+function transfer (address payable cuentaGanadora_) external payable returns (bool success){
+        require(donaciones[delegado] <= _totalDonaciones, "Saldo insuficiente");
+        donaciones[delegado] -= _totalDonaciones; 
+        donaciones[cuentaGanadora_] += _totalDonaciones; 
+        emit Transfer (delegado, cuentaGanadora_, _totalDonaciones);
+        return true;
 
     }
-   
-
 
     }
-
