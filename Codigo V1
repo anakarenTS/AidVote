@@ -19,7 +19,10 @@ pragma solidity ^0.8.0;
     Fondo Mexicano para la Educación y el Desarrollo FMED - Educación - 0x14723A09ACff6D2A60DcdF7aA4AFf308FDDC160C
 
     Contract input: [FM4, AP, FMCN, FMED]
+    [0xdD870fA1b7C4700F2BD7f44238821C26f7392148,0x583031D1113aD414F02576BD6afaBfb302140225, 0x4B0897b0513fdC7C541B6d9D7E929C4e5364D2dB,0x14723A09ACff6D2A60DcdF7aA4AFf308FDDC160C]
     */
+
+
 
 
     
@@ -37,9 +40,6 @@ contract Aidvote {
         address payable cuenta;
     }
 
-    uint256 public voteStart;
-    uint256 public votingTime;
-
     address public delegado;
 
 
@@ -47,13 +47,15 @@ contract Aidvote {
 
     Propuesta[] public propuestas;
 
-    uint256 _totalDonaciones = 1000 ether;
+    uint256 _totalDonaciones = 10 ether;
     mapping(address => uint256) donaciones;
 
     bool ended;
 
+    uint256 voteEndingBlock;
+   
 
-    constructor(string[] memory propuestaNombres, address payable[] memory propuestaCuentas) {
+    constructor(string[] memory propuestaNombres, address payable[] memory propuestaCuentas, uint256 _endVotingTimeBlock) {
         delegado = msg.sender;
         votantes[delegado].peso = 1;
 
@@ -67,6 +69,8 @@ contract Aidvote {
             }));
         }
          donaciones [address(this)] = _totalDonaciones;
+
+         voteEndingBlock = _endVotingTimeBlock;
     }
 
     function DarDerechoAVoto(address votante) external {
@@ -86,14 +90,10 @@ contract Aidvote {
   
     function voto(uint propuesta) external {
 
-        uint _votingTime; {
-        voteStart = block.timestamp;
-        votingTime = _votingTime;
-    }
         Votante storage sender = votantes[msg.sender];
         require(sender.peso != 0, "No tiene derecho a votar");
         require(!sender.votoemitido, "Voto Emitido.");
-        require(block.timestamp <= (voteStart + votingTime));
+        require(block.timestamp >= voteEndingBlock);
         sender.votoemitido = true;
         sender.voto = propuesta;
 
@@ -122,18 +122,25 @@ contract Aidvote {
 
     function votingEnd() external {
         
-        require(block.timestamp >= (voteStart + votingTime)); 
+        require(block.timestamp >= voteEndingBlock); 
         require(!ended);
 
         ended = true;
+    }
+    event Transfer(address indexed delegado, address indexed cuentaGanadora_, uint256 _totalDonaciones);
 
-function transfer (address payable cuentaGanadora_) external payable returns (bool success){
+    function transfer (address payable cuentaGanadora_) external payable {
         require(donaciones[delegado] <= _totalDonaciones, "Saldo insuficiente");
         donaciones[delegado] -= _totalDonaciones; 
         donaciones[cuentaGanadora_] += _totalDonaciones; 
+
         emit Transfer (delegado, cuentaGanadora_, _totalDonaciones);
-        return true;
 
     }
 
     }
+   
+
+
+    
+
